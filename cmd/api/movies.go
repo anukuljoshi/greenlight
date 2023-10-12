@@ -23,28 +23,15 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		app.badRequestResponse(w, r, err)
 		return
 	}
+	var movie = &data.Movie{
+		Title: input.Title,
+		Year: input.Year,
+		Runtime: input.Runtime,
+		Genres: input.Genres,
+	}
 	var v = validator.New()
 	// validations
-	// title
-	v.Check(input.Title!="", "title", "required")
-	v.Check(len(input.Title)<=500, "title", "must not be more than 500 characters")
-
-	// year
-	v.Check(input.Year!=0, "year", "required")
-	v.Check(input.Year>=1888, "year", "must be greater than 1888")
-	v.Check(input.Year<=int32(time.Now().Year()), "year", "must not be in the future")
-
-	// runtime
-	v.Check(input.Runtime!=0, "runtime", "required")
-	v.Check(input.Runtime>0, "runtime", "must be a positive integer")
-
-	// genres
-	v.Check(input.Genres!=nil, "genres", "required")
-	v.Check(len(input.Genres)>=1, "genres", "must contain at least one genre")
-	v.Check(len(input.Genres)<=5, "genres", "must not contain more than 5 genres")
-	v.Check(validator.Unique(input.Genres), "genres", "must contain unique values")
-
-	if !v.Valid() {
+	if data.ValidateMovie(v, movie);!v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
