@@ -35,8 +35,23 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-	// dump contents of input struct into http response
-	fmt.Fprintf(w, "%+v\n", input)
+	// call Create method for Movie model with a pointer to a movie struct
+	err = app.models.Movies.Create(movie)
+	if err!=nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	// set Location with url of newly created record in headers
+	headers := make(http.Header)
+	headers.Set("Location", fmt.Sprintf("/v1/movies/%d", movie.ID))
+
+	// return response with StatusCreated
+	err = app.writeJSON(w, http.StatusCreated, envelope{"movie": movie}, headers)
+	if err!=nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
 }
 
 func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request) {
