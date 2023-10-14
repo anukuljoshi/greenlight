@@ -76,3 +76,61 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 }
+
+func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Request) {
+	var id, err = app.readIDParam(r)
+	if err!=nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	// get existing movie record from db
+	movie, err := app.models.Movies.Get(id)
+	if err!=nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	// create anonymous struct to hold request body info
+	var input struct {
+		Title string `json:"title"`
+		Year int32 `json:"year"`
+		Runtime data.Runtime `json:"runtime"`
+		Genres []string `json:"genres"`
+	}
+	// initialize json.Decoder() which reads from request.Body
+	err = app.readJSON(w, r, &input)
+	if err!=nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	// copy values from input data to fetched movie record
+	movie.Title= input.Title
+	movie.Year= input.Year
+	movie.Runtime= input.Runtime
+	movie.Genres= input.Genres
+
+	var v = validator.New()
+	// validations
+	if data.ValidateMovie(v, movie);!v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	// call Update method for Movie model with a pointer to updated movie struct
+	err = app.models.Movies.Update(movie)
+	if err!=nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	// return response with StatusCreated
+	err = app.writeJSON(w, http.StatusCreated, envelope{"movie": movie}, nil)
+	if err!=nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+}
