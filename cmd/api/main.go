@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/anukuljoshi/greenlight/internal/data"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
@@ -32,6 +33,7 @@ type config struct {
 type application struct {
 	config config
 	logger *log.Logger
+	models data.Models
 }
 
 func main() {
@@ -70,6 +72,7 @@ func main() {
 	var app = &application{
 		config: cfg,
 		logger: logger,
+		models: data.NewModels(db),
 	}
 
 	// create server with config
