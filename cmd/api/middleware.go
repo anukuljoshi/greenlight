@@ -52,29 +52,37 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 
 	// returning function is a closure which closes over the limiter
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// extract clients ip address from request
-		ip, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err!=nil {
-			app.serverErrorResponse(w, r, err)
-			return
-		}
-		// lock mutex to prevent this code from running concurrently
-		mu.Lock()
-		// check if client struct exists for client ip
-		// create new if does not exists
-		if _, found := clients[ip]; !found {
-			clients[ip] = &client{limiter: rate.NewLimiter(2, 4)}
-		}
-		// update lastSeen time
-		clients[ip].lastSeen = time.Now()
+		// only check if rate limiter is enabled
+		if app.config.limiter.enabled {
+			// extract clients ip address from request
+			ip, _, err := net.SplitHostPort(r.RemoteAddr)
+			if err!=nil {
+				app.serverErrorResponse(w, r, err)
+				return
+			}
+			// lock mutex to prevent this code from running concurrently
+			mu.Lock()
+			// check if client struct exists for client ip
+			// create new if does not exists
+			if _, found := clients[ip]; !found {
+				clients[ip] = &client{
+					limiter: rate.NewLimiter(
+						rate.Limit(app.config.limiter.rps),
+						app.config.limiter.burst,
+					),
+				}
+			}
+			// update lastSeen time
+			clients[ip].lastSeen = time.Now()
 
-		if !clients[ip].limiter.Allow() {
+			if !clients[ip].limiter.Allow() {
+				mu.Unlock()
+				app.rateLimitExceededResponse(w, r)
+				return
+			}
+			// unlock mutex before call next handler
 			mu.Unlock()
-			app.rateLimitExceededResponse(w, r)
-			return
 		}
-		// unlock mutex before call next handler
-		mu.Unlock()
 		next.ServeHTTP(w, r)
 	})
 }
