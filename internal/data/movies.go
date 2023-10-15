@@ -59,6 +59,48 @@ func (m MovieModel) Create(movie *Movie) error {
 }
 
 // retrieve a movie record with id from db
+func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
+	query := `
+		SELECT id, title, year, runtime, genres, created_at, version
+		FROM movies
+		ORDER BY id;
+	`
+
+	// use context.WithTimeout() to create context with 3 second timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, query)
+	if err!=nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var movies = []*Movie{}
+	for rows.Next() {
+		var tempMovie Movie
+		err := rows.Scan(
+			&tempMovie.ID,
+			&tempMovie.Title,
+			&tempMovie.Year,
+			&tempMovie.Runtime,
+			pq.Array(&tempMovie.Genres),
+			&tempMovie.CreatedAt,
+			&tempMovie.Version,
+		)
+		if err!=nil {
+			return nil, err
+		}
+		movies = append(movies, &tempMovie)
+	}
+
+	if err=rows.Err(); err!=nil {
+		return nil, err
+	}
+	return movies, nil
+}
+
+// retrieve a movie record with id from db
 func (m MovieModel) Get(id int64) (*Movie, error) {
 	if id<1 {
 		return nil, ErrRecordNotFound
