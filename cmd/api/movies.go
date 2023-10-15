@@ -131,7 +131,12 @@ func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Reques
 	// call Update method for Movie model with a pointer to updated movie struct
 	err = app.models.Movies.Update(movie)
 	if err!=nil {
-		app.serverErrorResponse(w, r, err)
+		switch {
+		case errors.Is(err, data.ErrEditConflict):
+			app.editConflictResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
 		return
 	}
 
