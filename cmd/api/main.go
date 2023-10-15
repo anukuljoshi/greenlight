@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/anukuljoshi/greenlight/internal/data"
+	"github.com/anukuljoshi/greenlight/internal/jsonlog"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
@@ -32,7 +33,7 @@ type config struct {
 // application struct to hold dependencies for handlers, middlewares, helpers
 type application struct {
 	config config
-	logger *log.Logger
+	logger *jsonlog.Logger
 	models data.Models
 }
 
@@ -49,24 +50,25 @@ func main() {
 	flag.StringVar(&cfg.db.maxIdleTime, "db-max-idle-time", "15m", "PostgreSQL max idle connection time")
 	flag.Parse()
 
+	// create logger
+	var logger = jsonlog.New(os.Stdout, jsonlog.LevelInfo)
+
 	// read env
 	err := godotenv.Load(".env")
 	if err!=nil {
-		log.Fatal(err)
+		logger.PrintFatal(err, nil)
 	}
 	cfg.db.dsn = os.Getenv("DSN")
 
-	// create logger
-	var logger = log.New(os.Stdout, "", log.Ldate|log.Ltime)
 
 	// connect to db
 	db, err := openDB(cfg)
 	if err!=nil {
-		log.Fatal(err)
+		logger.PrintFatal(err, nil)
 	}
 	defer db.Close()
 
-	logger.Println("database connected")
+	logger.PrintInfo("database connected", nil)
 
 	// create app struct
 	var app = &application{
@@ -79,14 +81,19 @@ func main() {
 	var srv = &http.Server{
 		Addr: fmt.Sprintf(":%d", cfg.port),
 		Handler: app.routes(),
+		// built in error log will use out custom logger for logging
+		ErrorLog: log.New(logger, "", 0),
 		IdleTimeout: time.Minute,
 		ReadTimeout: 10 * time.Second,
 		WriteTimeout: 30 * time.Second,
 	}
 
-	logger.Printf("starting %s server on %s", cfg.env, srv.Addr)
+	logger.PrintInfo("starting server", map[string]string{
+		"addr": srv.Addr,
+		"env": cfg.env,
+	})
 	err = srv.ListenAndServe()
-	logger.Fatalln(err)
+	logger.PrintFatal(err, nil)
 }
 
 func openDB(cfg config) (*sql.DB, error) {
