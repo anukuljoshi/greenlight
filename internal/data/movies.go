@@ -60,10 +60,10 @@ func (m MovieModel) Create(movie *Movie) error {
 }
 
 // retrieve a movie record with id from db
-func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
+func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, Metadata, error) {
 	query := fmt.Sprintf(
 		`
-			SELECT id, title, year, runtime, genres, created_at, version
+			SELECT count(*) OVER(), id, title, year, runtime, genres, created_at, version
 			FROM movies
 			WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '')
 			AND (genres @> $2 OR $2 = '{}')
@@ -86,14 +86,16 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
 	}
 	rows, err := m.DB.QueryContext(ctx, query, args...)
 	if err!=nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
 	defer rows.Close()
 
+	var totalRecords = 0
 	var movies = []*Movie{}
 	for rows.Next() {
 		var tempMovie Movie
 		err := rows.Scan(
+			&totalRecords,
 			&tempMovie.ID,
 			&tempMovie.Title,
 			&tempMovie.Year,
@@ -103,15 +105,17 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
 			&tempMovie.Version,
 		)
 		if err!=nil {
-			return nil, err
+			return nil, Metadata{}, err
 		}
 		movies = append(movies, &tempMovie)
 	}
 
 	if err=rows.Err(); err!=nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
-	return movies, nil
+	// get metadata using calculateMetadata function
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+	return movies, metadata, nil
 }
 
 // retrieve a movie record with id from db
