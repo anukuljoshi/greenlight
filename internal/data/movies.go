@@ -47,7 +47,7 @@ type MovieModel struct {
 }
 
 // create a movie instance in db
-func (m MovieModel) Create(movie *Movie) error {
+func (m MovieModel) Insert(movie *Movie) error {
 	query := `
 		INSERT INTO movies (title, year, runtime, genres)
 		VALUES ($1, $2, $3, $4)

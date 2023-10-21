@@ -36,7 +36,7 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	// call Create method for Movie model with a pointer to a movie struct
-	err = app.models.Movies.Create(movie)
+	err = app.models.Movies.Insert(movie)
 	if err!=nil {
 		app.serverErrorResponse(w, r, err)
 		return
