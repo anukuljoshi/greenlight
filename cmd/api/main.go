@@ -5,10 +5,12 @@ import (
 	"database/sql"
 	"flag"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/anukuljoshi/greenlight/internal/data"
 	"github.com/anukuljoshi/greenlight/internal/jsonlog"
+	"github.com/anukuljoshi/greenlight/internal/mailer"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
@@ -30,6 +32,13 @@ type config struct {
 		burst int
 		enabled bool
 	}
+	smtp struct {
+		host		string
+		port		int
+		username	string
+		password	string
+		sender		string
+	}
 }
 
 // application struct to hold dependencies for handlers, middlewares, helpers
@@ -37,6 +46,7 @@ type application struct {
 	config config
 	logger *jsonlog.Logger
 	models data.Models
+	mailer mailer.Mailer
 }
 
 func main() {
@@ -65,6 +75,16 @@ func main() {
 		logger.PrintFatal(err, nil)
 	}
 	cfg.db.dsn = os.Getenv("DSN")
+	cfg.smtp.host = os.Getenv("MAILTRAP_HOST")
+	port, err := strconv.Atoi(os.Getenv("MAILTRAP_PORT"))
+	if err!=nil {
+		logger.PrintFatal(err, nil)
+		return
+	}
+	cfg.smtp.port = port
+	cfg.smtp.username = os.Getenv("MAILTRAP_USERNAME")
+	cfg.smtp.password = os.Getenv("MAILTRAP_PASSWORD")
+	cfg.smtp.sender = "GreenLight <no-reply@greenlight.com>"
 
 	// connect to db
 	db, err := openDB(cfg)
@@ -80,6 +100,13 @@ func main() {
 		config: cfg,
 		logger: logger,
 		models: data.NewModels(db),
+		mailer: mailer.New(
+			cfg.smtp.host,
+			cfg.smtp.port,
+			cfg.smtp.username,
+			cfg.smtp.password,
+			cfg.smtp.sender,
+		),
 	}
 
 	err = app.serve()
