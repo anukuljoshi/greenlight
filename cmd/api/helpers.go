@@ -119,7 +119,11 @@ func (app *application) readInt(qs url.Values, key string, defaultValue int, v *
 // helper function to run background tasks
 // it recovers from panic and logs error instead of terminating application
 func (app *application) background(fn func()) {
+	// increment wait group counter before running goroutine
+	app.wg.Add(1)
 	go func ()  {
+		// defer decrement of wait group counter before goroutine returns
+		defer app.wg.Done()
 		defer func ()  {
 			if err:=recover();err!=nil {
 				app.logger.PrintError(fmt.Errorf("%s", err), nil)

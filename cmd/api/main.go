@@ -6,6 +6,7 @@ import (
 	"flag"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/anukuljoshi/greenlight/internal/data"
@@ -47,6 +48,7 @@ type application struct {
 	logger *jsonlog.Logger
 	models data.Models
 	mailer mailer.Mailer
+	wg sync.WaitGroup
 }
 
 func main() {

@@ -37,7 +37,17 @@ func (app *application) serve() error {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		// call shutdown passing the ctx and catching error
-		shutdownError <- srv.Shutdown(ctx)
+		err := srv.Shutdown(ctx)
+		if err!=nil {
+			shutdownError <- err
+		}
+		// log message indicating background task are being completed
+		app.logger.PrintInfo("completing background tasks", map[string]string{
+			"addr": srv.Addr,
+		})
+		// call wait on app.wg to wait for all goroutine to complete
+		app.wg.Wait()
+		shutdownError <- nil
 	}()
 	app.logger.PrintInfo("starting server", map[string]string{
 		"addr": srv.Addr,
