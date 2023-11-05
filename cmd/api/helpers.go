@@ -115,3 +115,17 @@ func (app *application) readInt(qs url.Values, key string, defaultValue int, v *
 	}
 	return i
 }
+
+// helper function to run background tasks
+// it recovers from panic and logs error instead of terminating application
+func (app *application) background(fn func()) {
+	go func ()  {
+		defer func ()  {
+			if err:=recover();err!=nil {
+				app.logger.PrintError(fmt.Errorf("%s", err), nil)
+			}
+		}()
+		// execute the function passes a parameter
+		fn()
+	}()
+}
