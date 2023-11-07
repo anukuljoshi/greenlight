@@ -192,6 +192,7 @@ func (app *application) enableCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// warns caches the response may vary based on Origin header
 		w.Header().Set("Vary", "Origin")
+		w.Header().Set("Vary", "Access-Control-Request-Method")
 
 		origin := r.Header.Get("Origin")
 		// set Access-Control-Allow-Origin to Origin header if it matches one of our trustedOrigins
@@ -199,6 +200,15 @@ func (app *application) enableCORS(next http.Handler) http.Handler {
 			for i := range app.config.cors.trustedOrigins {
 				if origin==app.config.cors.trustedOrigins[i] {
 					w.Header().Set("Access-Control-Allow-Origin", origin)
+					// check if request had http method OPTIONS, and contains the 
+					// "Access-Control-Request-Method" header. If it does, treat it as preflight request
+					if r.Method==http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
+						// set necessary preflight headers
+						w.Header().Set("Access-Control-Allow-Methods", "OPTIONS, PUT, PATCH, DELETE")
+						w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+						w.WriteHeader(http.StatusOK)
+						return
+					}
 				}
 			}
 		}
