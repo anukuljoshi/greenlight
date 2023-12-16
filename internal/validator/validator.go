@@ -19,7 +19,7 @@ func New() *Validator {
 
 // checks if errors map contains no values
 func (v *Validator) Valid() bool {
-	return len(v.Errors)==0
+	return len(v.Errors) == 0
 }
 
 // add new key value for error if key does not exists
@@ -40,7 +40,7 @@ func (v *Validator) Check(ok bool, key, message string) {
 // check if value in list of strings
 func In(value string, list ...string) bool {
 	for i := range list {
-		if value==list[i] {
+		if value == list[i] {
 			return true
 		}
 	}
@@ -58,5 +58,5 @@ func Unique(values []string) bool {
 	for _, value := range values {
 		uniqueValues[value] = true
 	}
-	return len(values)==len(uniqueValues)
+	return len(values) == len(uniqueValues)
 }

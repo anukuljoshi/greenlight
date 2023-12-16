@@ -12,30 +12,30 @@ import (
 )
 
 const (
-	ScopeActivation = "activation"
+	ScopeActivation     = "activation"
 	ScopeAuthentication = "authentication"
 )
 
 type Token struct {
-	Plaintext string `json:"token"`
-	Hash []byte `json:"-"`
-	UserID int64 `json:"-"`
-	Expiry time.Time `json:"expiry"`
-	Scope string `json:"-"`
+	Plaintext string    `json:"token"`
+	Hash      []byte    `json:"-"`
+	UserID    int64     `json:"-"`
+	Expiry    time.Time `json:"expiry"`
+	Scope     string    `json:"-"`
 }
 
-func generateToken(userID int64, ttl time.Duration, scope string) (*Token, error)  {
+func generateToken(userID int64, ttl time.Duration, scope string) (*Token, error) {
 	// create a token instance with userID, scope, and expiry
 	token := &Token{
 		UserID: userID,
 		Expiry: time.Now().Add(ttl),
-		Scope: scope,
+		Scope:  scope,
 	}
 	// initialize 0 valued byte slice with length 16 bytes
 	randomBytes := make([]byte, 16)
 	// fill randomBytes with random bytes using rand.Read
 	_, err := rand.Read(randomBytes)
-	if err!=nil {
+	if err != nil {
 		return nil, err
 	}
 	// encode byte slice to base-32-encoded string to send to users in welcome email
@@ -47,9 +47,9 @@ func generateToken(userID int64, ttl time.Duration, scope string) (*Token, error
 }
 
 // check plainText token has been provided and is exactly 26 bytes long
-func ValidateTokenPlainText(v *validator.Validator, tokenPlainText string)  {
-	v.Check(tokenPlainText!="", "token", "required")
-	v.Check(len(tokenPlainText)==26, "token", "must be 26 bytes long")
+func ValidateTokenPlainText(v *validator.Validator, tokenPlainText string) {
+	v.Check(tokenPlainText != "", "token", "required")
+	v.Check(len(tokenPlainText) == 26, "token", "must be 26 bytes long")
 }
 
 type TokenModel struct {
@@ -59,7 +59,7 @@ type TokenModel struct {
 // creates new token and inserts data into tokens table
 func (m TokenModel) New(userID int64, ttl time.Duration, scope string) (*Token, error) {
 	token, err := generateToken(userID, ttl, scope)
-	if err!=nil {
+	if err != nil {
 		return nil, err
 	}
 	err = m.Insert(token)

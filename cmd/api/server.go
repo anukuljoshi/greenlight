@@ -14,14 +14,14 @@ import (
 func (app *application) serve() error {
 	// create a server with config
 	srv := &http.Server{
-		Addr: fmt.Sprintf(":%d", app.config.port),
-		Handler: app.routes(),
-		IdleTimeout: time.Minute,
-		ReadTimeout: 10 * time.Second,
+		Addr:         fmt.Sprintf(":%d", app.config.port),
+		Handler:      app.routes(),
+		IdleTimeout:  time.Minute,
+		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
 	}
 	shutdownError := make(chan error)
-	go func () {
+	go func() {
 		// create a quit channel which carries os.Signal values
 		quit := make(chan os.Signal, 1)
 		// user signal.Notify to listen fo SIGTERM, SIGINT signal and relay then to quit channel
@@ -38,7 +38,7 @@ func (app *application) serve() error {
 		defer cancel()
 		// call shutdown passing the ctx and catching error
 		err := srv.Shutdown(ctx)
-		if err!=nil {
+		if err != nil {
 			shutdownError <- err
 		}
 		// log message indicating background task are being completed
@@ -51,7 +51,7 @@ func (app *application) serve() error {
 	}()
 	app.logger.PrintInfo("starting server", map[string]string{
 		"addr": srv.Addr,
-		"env": app.config.env,
+		"env":  app.config.env,
 	})
 	// calling shutdown return ErrServerClosed error
 	err := srv.ListenAndServe()
@@ -60,7 +60,7 @@ func (app *application) serve() error {
 	}
 	// wait for shutdownError on channel
 	err = <-shutdownError
-	if err!=nil {
+	if err != nil {
 		return err
 	}
 	// graceful shutdown was successful

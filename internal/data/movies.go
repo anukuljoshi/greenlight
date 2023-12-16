@@ -12,33 +12,33 @@ import (
 )
 
 type Movie struct {
-	ID 			int64		`json:"id"`
-	CreatedAt 	time.Time	`json:"-"`
-	Title 		string		`json:"title"`
-	Year 		int32		`json:"year,omitempty"`
-	Runtime 	Runtime		`json:"runtime,omitempty"`
-	Genres 		[]string	`json:"genres,omitempty"`
-	Version 	int32		`json:"version"`
+	ID        int64     `json:"id"`
+	CreatedAt time.Time `json:"-"`
+	Title     string    `json:"title"`
+	Year      int32     `json:"year,omitempty"`
+	Runtime   Runtime   `json:"runtime,omitempty"`
+	Genres    []string  `json:"genres,omitempty"`
+	Version   int32     `json:"version"`
 }
 
 func ValidateMovie(v *validator.Validator, movie *Movie) {
 	// title
-	v.Check(movie.Title!="", "title", "required")
-	v.Check(len(movie.Title)<=500, "title", "must not be more than 500 characters")
+	v.Check(movie.Title != "", "title", "required")
+	v.Check(len(movie.Title) <= 500, "title", "must not be more than 500 characters")
 
 	// year
-	v.Check(movie.Year!=0, "year", "required")
-	v.Check(movie.Year>=1888, "year", "must be greater than 1888")
-	v.Check(movie.Year<=int32(time.Now().Year()), "year", "must not be in the future")
+	v.Check(movie.Year != 0, "year", "required")
+	v.Check(movie.Year >= 1888, "year", "must be greater than 1888")
+	v.Check(movie.Year <= int32(time.Now().Year()), "year", "must not be in the future")
 
 	// runtime
-	v.Check(movie.Runtime!=0, "runtime", "required")
-	v.Check(movie.Runtime>0, "runtime", "must be a positive integer")
+	v.Check(movie.Runtime != 0, "runtime", "required")
+	v.Check(movie.Runtime > 0, "runtime", "must be a positive integer")
 
 	// genres
-	v.Check(movie.Genres!=nil, "genres", "required")
-	v.Check(len(movie.Genres)>=1, "genres", "must contain at least one genre")
-	v.Check(len(movie.Genres)<=5, "genres", "must not contain more than 5 genres")
+	v.Check(movie.Genres != nil, "genres", "required")
+	v.Check(len(movie.Genres) >= 1, "genres", "must contain at least one genre")
+	v.Check(len(movie.Genres) <= 5, "genres", "must not contain more than 5 genres")
 	v.Check(validator.Unique(movie.Genres), "genres", "must contain unique values")
 }
 
@@ -85,7 +85,7 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
 		filters.GetOffset(),
 	}
 	rows, err := m.DB.QueryContext(ctx, query, args...)
-	if err!=nil {
+	if err != nil {
 		return nil, Metadata{}, err
 	}
 	defer rows.Close()
@@ -104,13 +104,13 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
 			&tempMovie.CreatedAt,
 			&tempMovie.Version,
 		)
-		if err!=nil {
+		if err != nil {
 			return nil, Metadata{}, err
 		}
 		movies = append(movies, &tempMovie)
 	}
 
-	if err=rows.Err(); err!=nil {
+	if err = rows.Err(); err != nil {
 		return nil, Metadata{}, err
 	}
 	// get metadata using calculateMetadata function
@@ -120,7 +120,7 @@ func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*M
 
 // retrieve a movie record with id from db
 func (m MovieModel) Get(id int64) (*Movie, error) {
-	if id<1 {
+	if id < 1 {
 		return nil, ErrRecordNotFound
 	}
 	query := `
@@ -141,7 +141,7 @@ func (m MovieModel) Get(id int64) (*Movie, error) {
 		&movie.CreatedAt,
 		&movie.Version,
 	)
-	if err!=nil {
+	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
 			return nil, ErrRecordNotFound
@@ -171,7 +171,7 @@ func (m MovieModel) Update(movie *Movie) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	err := m.DB.QueryRowContext(ctx, query, args...).Scan(&movie.Version)
-	if err!=nil {
+	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
 			return ErrEditConflict
@@ -194,14 +194,14 @@ func (m MovieModel) Delete(id int64) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	result, err := m.DB.ExecContext(ctx, query, id)
-	if err!=nil {
+	if err != nil {
 		return err
 	}
 	rowsAffected, err := result.RowsAffected()
-	if err!=nil {
+	if err != nil {
 		return err
 	}
-	if rowsAffected==0 {
+	if rowsAffected == 0 {
 		return ErrRecordNotFound
 	}
 	return nil

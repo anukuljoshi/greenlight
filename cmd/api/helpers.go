@@ -19,7 +19,7 @@ type envelope map[string]any
 func (app *application) readIDParam(r *http.Request) (int64, error) {
 	var params = httprouter.ParamsFromContext(r.Context())
 	var id, err = strconv.ParseInt(params.ByName("id"), 10, 64)
-	if err!=nil || id<1 {
+	if err != nil || id < 1 {
 		return 0, errors.New("invalid id parameter")
 	}
 	return id, nil
@@ -28,12 +28,12 @@ func (app *application) readIDParam(r *http.Request) (int64, error) {
 func (app *application) writeJSON(w http.ResponseWriter, status int, data envelope, headers http.Header) error {
 	var js []byte
 	var err error
-	if app.config.env=="production" {
+	if app.config.env == "production" {
 		js, err = json.Marshal(data)
-	}else{
+	} else {
 		js, err = json.MarshalIndent(data, "", "\t")
 	}
-	if err!=nil {
+	if err != nil {
 		return err
 	}
 	js = append(js, '\n')
@@ -54,7 +54,7 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 	decoder.DisallowUnknownFields()
 
 	var err = decoder.Decode(dst)
-	if err!=nil {
+	if err != nil {
 		var syntaxError *json.SyntaxError
 		var unmarshalTypeError *json.UnmarshalTypeError
 		var invalidUnmarshalError *json.InvalidUnmarshalError
@@ -65,7 +65,7 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 		case errors.Is(err, io.ErrUnexpectedEOF):
 			return fmt.Errorf("body contains badly-formed JSON")
 		case errors.As(err, &unmarshalTypeError):
-			if unmarshalTypeError.Field!="" {
+			if unmarshalTypeError.Field != "" {
 				return fmt.Errorf("body contains incorrect JSON type for field %q", unmarshalTypeError.Field)
 			}
 			return fmt.Errorf("body contains incorrect JSON type (at character %d)", unmarshalTypeError.Offset)
@@ -78,7 +78,7 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 		}
 	}
 	err = decoder.Decode(&struct{}{})
-	if err!=io.EOF {
+	if err != io.EOF {
 		return fmt.Errorf("body must contain a single JSON object")
 	}
 	return nil
@@ -87,7 +87,7 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 // returns a string value with key from query params if key is present else return defaultValue
 func (app *application) readString(qs url.Values, key string, defaultValue string) string {
 	s := qs.Get(key)
-	if s=="" {
+	if s == "" {
 		return defaultValue
 	}
 	return s
@@ -96,7 +96,7 @@ func (app *application) readString(qs url.Values, key string, defaultValue strin
 // returns a []string value with key from query params if key is present else return defaultValue
 func (app *application) readCSV(qs url.Values, key string, defaultValue []string) []string {
 	s := qs.Get(key)
-	if s=="" {
+	if s == "" {
 		return defaultValue
 	}
 	return strings.Split(s, ",")
@@ -105,11 +105,11 @@ func (app *application) readCSV(qs url.Values, key string, defaultValue []string
 // returns a Int value with key from query params if key is present else return defaultValue
 func (app *application) readInt(qs url.Values, key string, defaultValue int, v *validator.Validator) int {
 	s := qs.Get(key)
-	if s=="" {
+	if s == "" {
 		return defaultValue
 	}
 	i, err := strconv.Atoi(s)
-	if err!=nil {
+	if err != nil {
 		v.AddError(key, "must be an integer value")
 		return defaultValue
 	}
@@ -121,11 +121,11 @@ func (app *application) readInt(qs url.Values, key string, defaultValue int, v *
 func (app *application) background(fn func()) {
 	// increment wait group counter before running goroutine
 	app.wg.Add(1)
-	go func ()  {
+	go func() {
 		// defer decrement of wait group counter before goroutine returns
 		defer app.wg.Done()
-		defer func ()  {
-			if err:=recover();err!=nil {
+		defer func() {
+			if err := recover(); err != nil {
 				app.logger.PrintError(fmt.Errorf("%s", err), nil)
 			}
 		}()

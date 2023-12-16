@@ -5,7 +5,7 @@ import "net/http"
 func (app *application) logError(r *http.Request, err error) {
 	app.logger.PrintError(err, map[string]string{
 		"request_method": r.Method,
-		"request_url": r.URL.String(),
+		"request_url":    r.URL.String(),
 	})
 }
 
@@ -14,7 +14,7 @@ func (app *application) errorResponse(w http.ResponseWriter, r *http.Request, st
 		"error": message,
 	}
 	var err = app.writeJSON(w, status, data, nil)
-	if err!=nil {
+	if err != nil {
 		app.logError(r, err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}

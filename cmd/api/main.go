@@ -22,24 +22,24 @@ const version = "1.0.0"
 // config struct to hold settings for our application
 type config struct {
 	port int
-	env string
-	db struct {
-		dsn string
+	env  string
+	db   struct {
+		dsn          string
 		maxOpenConns int
 		maxIdleConns int
-		maxIdleTime string
+		maxIdleTime  string
 	}
 	limiter struct {
-		rps float64
-		burst int
+		rps     float64
+		burst   int
 		enabled bool
 	}
 	smtp struct {
-		host		string
-		port		int
-		username	string
-		password	string
-		sender		string
+		host     string
+		port     int
+		username string
+		password string
+		sender   string
 	}
 	cors struct {
 		trustedOrigins []string
@@ -52,7 +52,7 @@ type application struct {
 	logger *jsonlog.Logger
 	models data.Models
 	mailer mailer.Mailer
-	wg sync.WaitGroup
+	wg     sync.WaitGroup
 }
 
 func main() {
@@ -81,13 +81,13 @@ func main() {
 
 	// read env
 	err := godotenv.Load(".env")
-	if err!=nil {
+	if err != nil {
 		logger.PrintFatal(err, nil)
 	}
 	cfg.db.dsn = os.Getenv("DSN")
 	cfg.smtp.host = os.Getenv("MAILTRAP_HOST")
 	port, err := strconv.Atoi(os.Getenv("MAILTRAP_PORT"))
-	if err!=nil {
+	if err != nil {
 		logger.PrintFatal(err, nil)
 		return
 	}
@@ -98,7 +98,7 @@ func main() {
 
 	// connect to db
 	db, err := openDB(cfg)
-	if err!=nil {
+	if err != nil {
 		logger.PrintFatal(err, nil)
 	}
 	defer db.Close()
@@ -120,21 +120,21 @@ func main() {
 	}
 
 	err = app.serve()
-	if err!=nil {
+	if err != nil {
 		logger.PrintFatal(err, nil)
 	}
 }
 
 func openDB(cfg config) (*sql.DB, error) {
 	db, err := sql.Open("postgres", cfg.db.dsn)
-	if err!=nil {
+	if err != nil {
 		return nil, err
 	}
 	// set db connection pool settings
 	db.SetMaxOpenConns(cfg.db.maxOpenConns)
 	db.SetMaxIdleConns(cfg.db.maxIdleConns)
 	duration, err := time.ParseDuration(cfg.db.maxIdleTime)
-	if err!=nil {
+	if err != nil {
 		return nil, err
 	}
 	db.SetConnMaxIdleTime(duration)
@@ -144,7 +144,7 @@ func openDB(cfg config) (*sql.DB, error) {
 	defer cancel()
 	// establish new connection with context, returns error if not connected in 5 seconds
 	err = db.PingContext(ctx)
-	if err!=nil {
+	if err != nil {
 		return nil, err
 	}
 	return db, nil

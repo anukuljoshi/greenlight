@@ -17,8 +17,8 @@ import (
 func (app *application) recoverPanic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// create a deferred function which will run in the event of panic as Go unwinds stack
-		defer func ()  {
-			if err:=recover();err!=nil {
+		defer func() {
+			if err := recover(); err != nil {
 				w.Header().Set("Connection", "close")
 				app.serverErrorResponse(w, r, fmt.Errorf("%s", err))
 			}
@@ -30,12 +30,12 @@ func (app *application) recoverPanic(next http.Handler) http.Handler {
 func (app *application) rateLimit(next http.Handler) http.Handler {
 	// define a client struct which hold the limiter and last seen time for each user
 	type client struct {
-		limiter *rate.Limiter
+		limiter  *rate.Limiter
 		lastSeen time.Time
 	}
 	// create a map to hold single rate limiter per user
 	var (
-		mu sync.Mutex
+		mu      sync.Mutex
 		clients = make(map[string]*client)
 	)
 	// launch a background goroutine which removes old entries from clients map once every minute
@@ -46,7 +46,7 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 		// loop through all clients
 		// delete their data if not seen within last three minutes
 		for ip, client := range clients {
-			if time.Since(client.lastSeen) > 3 * time.Minute {
+			if time.Since(client.lastSeen) > 3*time.Minute {
 				delete(clients, ip)
 			}
 		}
@@ -60,7 +60,7 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 		if app.config.limiter.enabled {
 			// extract clients ip address from request
 			ip, _, err := net.SplitHostPort(r.RemoteAddr)
-			if err!=nil {
+			if err != nil {
 				app.serverErrorResponse(w, r, err)
 				return
 			}
@@ -101,7 +101,7 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 		// retrieve Authorization header from request
 		authorizationHeader := r.Header.Get("Authorization")
 		// set anonymous user if Auth header is empty
-		if authorizationHeader=="" {
+		if authorizationHeader == "" {
 			r = app.contextSetUser(r, data.AnonymousUser)
 			next.ServeHTTP(w, r)
 			return
@@ -110,7 +110,7 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 		// extract token from Authorization header
 		headerParts := strings.Split(authorizationHeader, " ")
 		// check if Auth header is in correct format
-		if len(headerParts)!=2 || headerParts[0]!="Bearer" {
+		if len(headerParts) != 2 || headerParts[0] != "Bearer" {
 			app.invalidAuthenticationTokenResponse(w, r)
 			return
 		}
@@ -123,7 +123,7 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 		}
 		// get user with token
 		user, err := app.models.Users.GetForToken(data.ScopeAuthentication, token)
-		if err!=nil {
+		if err != nil {
 			switch {
 			case errors.Is(err, data.ErrRecordNotFound):
 				app.invalidAuthenticationTokenResponse(w, r)
@@ -172,7 +172,7 @@ func (app *application) requirePermission(code string, next http.HandlerFunc) ht
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		user := app.contextGetUser(r)
 		permissions, err := app.models.Permissions.GetAllForUser(user.ID)
-		if err!=nil {
+		if err != nil {
 			app.serverErrorResponse(w, r, err)
 			return
 		}
@@ -196,13 +196,13 @@ func (app *application) enableCORS(next http.Handler) http.Handler {
 
 		origin := r.Header.Get("Origin")
 		// set Access-Control-Allow-Origin to Origin header if it matches one of our trustedOrigins
-		if origin!="" && len(app.config.cors.trustedOrigins)>0 {
+		if origin != "" && len(app.config.cors.trustedOrigins) > 0 {
 			for i := range app.config.cors.trustedOrigins {
-				if origin==app.config.cors.trustedOrigins[i] {
+				if origin == app.config.cors.trustedOrigins[i] {
 					w.Header().Set("Access-Control-Allow-Origin", origin)
-					// check if request had http method OPTIONS, and contains the 
+					// check if request had http method OPTIONS, and contains the
 					// "Access-Control-Request-Method" header. If it does, treat it as preflight request
-					if r.Method==http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
+					if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
 						// set necessary preflight headers
 						w.Header().Set("Access-Control-Allow-Methods", "OPTIONS, PUT, PATCH, DELETE")
 						w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")

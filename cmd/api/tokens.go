@@ -11,12 +11,12 @@ import (
 
 func (app *application) createAuthenticationHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Email string `json:"email"`
+		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
 
 	err := app.readJSON(w, r, &input)
-	if err!=nil {
+	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
@@ -31,7 +31,7 @@ func (app *application) createAuthenticationHandler(w http.ResponseWriter, r *ht
 	}
 
 	user, err := app.models.Users.GetByEmail(input.Email)
-	if err!=nil {
+	if err != nil {
 		switch {
 		case errors.Is(err, data.ErrRecordNotFound):
 			app.invalidCredentialsResponse(w, r)
@@ -43,7 +43,7 @@ func (app *application) createAuthenticationHandler(w http.ResponseWriter, r *ht
 
 	// check if password matches
 	match, err := user.Password.Matches(input.Password)
-	if err!=nil {
+	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
@@ -55,12 +55,12 @@ func (app *application) createAuthenticationHandler(w http.ResponseWriter, r *ht
 
 	// generate new token with 24 hours expiry if passwords match
 	token, err := app.models.Tokens.New(user.ID, 24*time.Hour, data.ScopeAuthentication)
-	if err!=nil {
+	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 	err = app.writeJSON(w, http.StatusCreated, envelope{"token": token}, nil)
-	if err!=nil {
+	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
