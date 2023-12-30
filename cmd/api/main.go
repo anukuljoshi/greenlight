@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"expvar"
 	"flag"
+	"fmt"
 	"os"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -15,11 +15,14 @@ import (
 	"github.com/anukuljoshi/greenlight/internal/data"
 	"github.com/anukuljoshi/greenlight/internal/jsonlog"
 	"github.com/anukuljoshi/greenlight/internal/mailer"
-	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
 const version = "1.0.0"
+
+// Create a buildTime variable to hold the executable binary build time. Note that this
+// must be a string type, as the -X linker flag will only work with string variables.
+var buildTime string
 
 // config struct to hold settings for our application
 type config struct {
@@ -65,9 +68,16 @@ func main() {
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 
 	// read db connection pool settings from flags
+	flag.StringVar(&cfg.db.dsn, "db-dsn", "", "PostgreSQL DSN")
 	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
 	flag.IntVar(&cfg.db.maxIdleConns, "db-max-idle-conns", 25, "PostgreSQL max idle connections")
 	flag.StringVar(&cfg.db.maxIdleTime, "db-max-idle-time", "15m", "PostgreSQL max idle connection time")
+	// mailtrap settings
+	flag.StringVar(&cfg.smtp.host, "smtp-host", "", "Mailtrap Host")
+	flag.IntVar(&cfg.smtp.port, "smtp-port", 2525, "Mailtrap port")
+	flag.StringVar(&cfg.smtp.username, "smtp-username", "", "Mailtrap Username")
+	flag.StringVar(&cfg.smtp.password, "smtp-password", "", "Mailtrap Password")
+	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "GreenLight <no-reply@greenlight.com>", "Mailtrap Sender")
 	// read limiter settings from flag vars
 	flag.Float64Var(&cfg.limiter.rps, "limiter-rps", 2, "Rate limiter maximum requests per second")
 	flag.IntVar(&cfg.limiter.burst, "limiter-burst", 4, "Rate limiter maximum burst")
@@ -76,27 +86,21 @@ func main() {
 		cfg.cors.trustedOrigins = strings.Fields(s)
 		return nil
 	})
+	// Create a new version boolean flag with the default value of false.
+	displayVersion := flag.Bool("version", false, "Display version and exit")
+
 	flag.Parse()
+
+	// If the version flag value is true, then print out the version number and
+	// immediately exit.
+	if *displayVersion {
+		fmt.Printf("Version:\t%s\n", version)
+		fmt.Printf("Build time:\t%s\n", buildTime)
+		os.Exit(0)
+	}
 
 	// create logger
 	var logger = jsonlog.New(os.Stdout, jsonlog.LevelInfo)
-
-	// read env
-	err := godotenv.Load(".env")
-	if err != nil {
-		logger.PrintFatal(err, nil)
-	}
-	cfg.db.dsn = os.Getenv("DSN")
-	cfg.smtp.host = os.Getenv("MAILTRAP_HOST")
-	port, err := strconv.Atoi(os.Getenv("MAILTRAP_PORT"))
-	if err != nil {
-		logger.PrintFatal(err, nil)
-		return
-	}
-	cfg.smtp.port = port
-	cfg.smtp.username = os.Getenv("MAILTRAP_USERNAME")
-	cfg.smtp.password = os.Getenv("MAILTRAP_PASSWORD")
-	cfg.smtp.sender = "GreenLight <no-reply@greenlight.com>"
 
 	// connect to db
 	db, err := openDB(cfg)
